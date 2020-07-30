@@ -5,3 +5,7 @@ Quilt::Engine.routes.draw do
   get '/*path', to: 'ui#index'
   root 'ui#index'
 end
+
+Rails.application.routes.append do
+  mount(Quilt::Engine, at: '/') unless has_named_route?(:quilt)
+end
