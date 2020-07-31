@@ -4,6 +4,7 @@ import {useSerialized} from '@shopify/react-html';
 import {ApolloProvider, createSsrExtractableLink} from '@shopify/react-graphql';
 import {useLazyRef} from '@shopify/react-hooks';
 import {ApolloLink} from 'apollo-link';
+import {InMemoryCache} from 'apollo-cache-inmemory';
 
 import {csrfLink} from './csrf-link';
 import {createErrorHandlerLink} from './error-link';
@@ -11,7 +12,7 @@ import {createErrorHandlerLink} from './error-link';
 interface Props {
   children?: React.ReactNode;
   server?: boolean;
-  createClientOptions(): ApolloClientOptions<any>;
+  createClientOptions(): Partial<ApolloClientOptions<any>>;
 }
 
 export function GraphQLUniversalProvider({
@@ -38,13 +39,15 @@ export function GraphQLUniversalProvider({
     const errorLink = createErrorHandlerLink();
     const link = ApolloLink.from([ssrLink, csrfLink, errorLink]);
 
+    const cache = clientOptions.cache
+      ? clientOptions.cache
+      : new InMemoryCache();
+
     const options = {
       ...defaultClientOptions,
       ...clientOptions,
       link: clientOptions.link ? link.concat(clientOptions.link) : link,
-      cache: initialData
-        ? clientOptions.cache.restore(initialData)
-        : clientOptions.cache,
+      cache: initialData ? cache.restore(initialData) : cache,
     };
 
     const apolloClient = new ApolloClient(options);
