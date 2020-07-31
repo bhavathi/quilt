@@ -3,16 +3,20 @@ import ApolloClient, {ApolloClientOptions} from 'apollo-client';
 import {useSerialized} from '@shopify/react-html';
 import {ApolloProvider, createSsrExtractableLink} from '@shopify/react-graphql';
 import {useLazyRef} from '@shopify/react-hooks';
+import {ApolloLink} from 'apollo-link';
 
 import {csrfLink} from './csrf-link';
+import {createErrorHandlerLink} from './error-link';
 
 interface Props {
   children?: React.ReactNode;
+  server?: boolean;
   createClientOptions(): ApolloClientOptions<any>;
 }
 
 export function GraphQLUniversalProvider({
   children,
+  server,
   createClientOptions,
 }: Props) {
   const [initialData, Serialize] = useSerialized<object | undefined>('apollo');
@@ -23,17 +27,27 @@ export function GraphQLUniversalProvider({
       ReturnType<typeof createSsrExtractableLink>,
     ]
   >(() => {
+    const defaultClientOptions: Partial<ApolloClientOptions<any>> = {
+      ssrMode: server,
+      ssrForceFetchDelay: 100,
+      connectToDevTools: !server,
+    };
+
     const clientOptions = createClientOptions();
     const ssrLink = createSsrExtractableLink();
-    const link = ssrLink.concat(csrfLink);
+    const errorLink = createErrorHandlerLink();
+    const link = ApolloLink.from([ssrLink, csrfLink, errorLink]);
 
-    const apolloClient = new ApolloClient({
+    const options = {
+      ...defaultClientOptions,
       ...clientOptions,
       link: clientOptions.link ? link.concat(clientOptions.link) : link,
       cache: initialData
         ? clientOptions.cache.restore(initialData)
         : clientOptions.cache,
-    });
+    };
+
+    const apolloClient = new ApolloClient(options);
 
     return [apolloClient, ssrLink];
   }).current;
