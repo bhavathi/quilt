@@ -8,6 +8,7 @@ import {InMemoryCache} from 'apollo-cache-inmemory';
 
 import {csrfLink} from './csrf-link';
 import {createErrorHandlerLink} from './error-link';
+import {defaultHttpLink} from './default-http-link';
 
 interface Props {
   children?: React.ReactNode;
@@ -46,7 +47,9 @@ export function GraphQLUniversalProvider({
     const options = {
       ...defaultClientOptions,
       ...clientOptions,
-      link: clientOptions.link ? link.concat(clientOptions.link) : link,
+      link: clientOptions.link
+        ? link.concat(clientOptions.link).concat(defaultHttpLink)
+        : link.concat(defaultHttpLink),
       cache: initialData ? cache.restore(initialData) : cache,
     };
 
